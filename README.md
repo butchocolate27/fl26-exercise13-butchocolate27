@@ -8,24 +8,24 @@ Use `QSharedMemory` for inter-process communication: two separate programs share
 |---|---|
 | `shared_ring_buffer.h` / `.tpp` | `SharedRingBuffer<T>`: a queue (ring buffer) that lives in a `QSharedMemory` segment. Every access is between `lock()` and `unlock()`. |
 | `qt_shared_deque_1.cpp` | **Consumer.** Waits until the queue has data, dequeues one integer, prints it, exits. |
-| `qt_shared_deque_2.cpp` | **Producer.** Waits until the queue is empty, reads **one** integer from the keyboard, enqueues it, exits. |
+| `qt_shared_deque_2.cpp` | **Producer.** Repeatedly reads integers from the keyboard and enqueues them while the queue has space. |
 | `CMakeLists.txt` | Builds both programs. |
 | `dockerfile` | Ubuntu 24.04 with Qt 6 and CMake. |
 
-## Your task
+## Changes and observations
 
-Right now the producer sends one number and quits. Change `qt_shared_deque_2.cpp` so it is a real producer:
+The producer now keeps prompting while the queue has space (up to 100 integers).
+It checks the input and the result of `enqueue()` before printing confirmation.
+EOF or input that is not an integer ends the producer.
 
-1. Loop forever: prompt, read an integer from `std::cin`, enqueue it **immediately**, print what you enqueued.
-2. Do not wait for the queue to be empty first.
+For step 9, I started the producer first and entered `12`, `-7`, and `0`.
+Starting the consumer printed `Dequeued: 12`, then the consumer exited.
+Running the consumer two more times printed `Dequeued: -7` and `Dequeued: 0`.
+The numbers were stored in the shared queue and retrieved in FIFO order.
+The producer stayed running during this test so the shared memory remained attached.
 
-Then test it (see "Run" below): start the consumer, type `42` into the producer, and check that the consumer prints `Dequeued: 42`.
-
-**Stretch goals**
-
-- Make the consumer loop too, so it prints every number you type.
-- `enqueue()` returns `false` when the queue is full. Print a message in that case instead of "Enqueued".
-- Handle input that isn't a number (for example, typing `abc`) without looping forever.
+I also checked that the producer stops accepting input when 100 numbers are queued
+and continues after the consumer frees a slot.
 
 ## Build
 
@@ -63,7 +63,11 @@ cd /work
 ./build/qt_shared_deque_2
 ```
 
-Type a number in terminal 2 and watch terminal 1.
+Type a number in terminal 2 and watch terminal 1. The consumer prints one number
+and exits. Run it again to dequeue another number.
+
+To test step 9, start the producer first, enter several integers, and keep it
+running. Then start the consumer in the other terminal.
 
 ## Troubleshooting
 
